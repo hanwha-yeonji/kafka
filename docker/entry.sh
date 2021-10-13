@@ -58,19 +58,16 @@ mkdir -p $KAFKA_LOG_DIRS
 unset NODE_ID
 unset ZOOKEEPER_CONNECT
 
+if [[ -z "$ADVERTISED_HOST_NAME" ]]; then
+    ADVERTISED_HOST_NAME=localhost
+fi
 if [[ -z "$ADVERTISED_PORT" ]]; then
     ADVERTISED_PORT=9092
-fi
-if [[ -z "$HOST_NAME" ]]; then
-    HOST_NAME=$(ip addr | grep 'BROADCAST' -A2 | tail -n1 | awk '{print $2}' | cut -f1  -d'/')
 fi
 
 : ${PORT:=9092}
 : ${ADVERTISED_PORT:=9092}
 : ${CONTROLLER_PORT:=9093}
-
-: ${ADVERTISED_PORT:=${PORT}}
-: ${ADVERTISED_HOST_NAME:=${HOST_NAME}}
 
 : ${KAFKA_ADVERTISED_PORT:=${ADVERTISED_PORT}}
 : ${KAFKA_ADVERTISED_HOST_NAME:=${ADVERTISED_HOST_NAME}}
@@ -126,28 +123,6 @@ do
     fi
   fi
 done
-
-if [[ -n $CREATE_TOPICS ]]; then
-  echo "Creating topics: $CREATE_TOPICS"
-  # Start a subshell in the background that waits for the Kafka broker to open socket on port 9092 and
-  # then creates the topics when the broker is running and able to receive connections ...
-  (
-      echo "STARTUP: Waiting for Kafka broker to open socket on port 9092 ..."
-      while ss -n | awk '$5 ~ /:9092$/ {exit 1}'; do sleep 1; done
-      echo "START: Found running Kafka broker on port 9092, so creating topics ..."
-      IFS=','; for topicToCreate in $CREATE_TOPICS; do
-          # remove leading and trailing whitespace ...
-          topicToCreate="$(echo ${topicToCreate} | xargs )"
-          IFS=':' read -a topicConfig <<< "$topicToCreate"
-          config=
-          if [ -n "${topicConfig[3]}" ]; then
-              config="--config=cleanup.policy=${topicConfig[3]}"
-          fi
-          echo "STARTUP: Creating topic ${topicConfig[0]} with ${topicConfig[1]} partitions and ${topicConfig[2]} replicas with cleanup policy ${topicConfig[3]}..."
-          $KAFKA_HOME/bin/kafka-topics.sh --create --zookeeper $KAFKA_ZOOKEEPER_CONNECT --replication-factor ${topicConfig[2]} --partitions ${topicConfig[1]} --topic "${topicConfig[0]}" ${config}
-      done
-  )&
-fi
 
 if [[ ! -z "$CLUSTER_ID" && ! -f "$KAFKA_LOG_DIRS/meta.properties" ]]; then
   echo "No meta.properties found in $KAFKA_LOG_DIRS; going to format the directory"
