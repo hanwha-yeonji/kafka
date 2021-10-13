@@ -6,8 +6,8 @@ docker file for kafka and sample source code
 docker run --rm -it --name kafka \
  -e CLUSTER_ID=RuTPVymzR16F2f40eUFmgw \
  -e BROKER_ID=1 \
- -p 19092:9092 \
- -p 19093:9093 \
+ -p 9092:9092 \
+ -p 9093:9093 \
  docker.pkg.github.com/hanwha-yeonji/kafka/kafka:3.0.0 
 ```
 
